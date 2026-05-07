@@ -11,6 +11,7 @@ import {
   Mic2, 
   Play, 
   Download, 
+  Upload,
   Split, 
   Clock, 
   FileAudio,
@@ -20,7 +21,9 @@ import {
   Waves,
   Loader2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { 
   VoiceName, 
@@ -60,6 +63,17 @@ export default function App() {
 
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('theme') as 'dark' | 'light') || 'dark';
+    }
+    return 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', theme === 'light');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   // Derived stats
   const charCount = script.length;
@@ -105,6 +119,18 @@ export default function App() {
       console.error("Preview generation failed:", error);
     } finally {
       setIsPreviewing(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        setScript(text);
+      };
+      reader.readAsText(file);
     }
   };
 
@@ -203,16 +229,23 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F1115] text-slate-100 font-sans selection:bg-indigo-500/30 flex flex-col">
+    <div className={`min-h-screen font-sans selection:bg-indigo-500/30 flex flex-col transition-colors duration-300 bg-[rgb(var(--background))] text-[rgb(var(--foreground))]`}>
       {/* Header */}
-      <header className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-6 bg-[#161920] shrink-0">
+      <header className="h-16 border-b border-[rgb(var(--border))] flex items-center justify-between px-4 md:px-6 bg-[rgb(var(--section-bg))] shrink-0 sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center shadow-lg shadow-indigo-600/20">
             <Waves className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-lg md:text-xl font-bold tracking-tight text-white uppercase italic">NERIX <span className="text-indigo-400 non-italic">TTS</span></h1>
+          <h1 className="text-lg md:text-xl font-bold tracking-tight uppercase italic">NERIX <span className="text-indigo-400 non-italic">TTS</span></h1>
         </div>
         <div className="flex items-center gap-4 md:gap-6">
+          <button 
+            onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+            className="p-2 rounded-lg bg-[rgb(var(--alt-bg))] border border-[rgb(var(--border))] hover:border-indigo-500/50 transition-all text-[rgb(var(--foreground))] group"
+            title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400 group-hover:rotate-12 transition-transform" /> : <Moon className="w-4 h-4 text-indigo-400 group-hover:-rotate-12 transition-transform" />}
+          </button>
           <div className="hidden lg:flex gap-4 text-xs font-medium text-slate-400">
             <div className="flex flex-col items-end">
               <span className="text-slate-200">~{charCount.toLocaleString()} CHARS</span>
@@ -238,26 +271,26 @@ export default function App() {
       <main className="flex-1 flex flex-col lg:grid lg:grid-cols-[280px_1fr_320px] lg:h-[calc(100vh-64px-40px)] overflow-hidden">
         
         {/* Left Column: Project Overview */}
-        <section className="order-2 lg:order-1 border-t lg:border-t-0 lg:border-r border-slate-800 flex flex-col bg-[#12141A] max-h-[150px] lg:max-h-none overflow-hidden shrink-0">
+        <section className="order-2 lg:order-1 border-t lg:border-t-0 lg:border-r border-[rgb(var(--border))] flex flex-col bg-[rgb(var(--alt-bg))] max-h-[150px] lg:max-h-none overflow-hidden shrink-0">
           <div className="p-4 flex-1 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
              <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-4">Project Overview</label>
                 <div className="space-y-3">
-                  <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                  <div className="p-3 bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] rounded-xl">
                     <p className="text-[9px] text-slate-500 uppercase font-black mb-1">Total Narrative</p>
                     <div className="flex items-end justify-between">
                       <span className="text-xl font-bold">{wordCount.toLocaleString()}</span>
                       <span className="text-[10px] text-slate-500 font-mono">WORDS</span>
                     </div>
                   </div>
-                  <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                  <div className="p-3 bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] rounded-xl">
                     <p className="text-[9px] text-slate-500 uppercase font-black mb-1">Production Complexity</p>
                     <div className="flex items-center gap-2">
                        <div className={`w-2 h-2 rounded-full ${wordCount > 500 ? 'bg-amber-400' : 'bg-emerald-400'}`} />
                        <span className="text-sm font-semibold">{wordCount > 500 ? 'High Complexity' : 'Standard'}</span>
                     </div>
                   </div>
-                  <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                  <div className="p-3 bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] rounded-xl">
                     <p className="text-[9px] text-slate-500 uppercase font-black mb-1">Input Integrity</p>
                     <div className="flex items-center gap-2">
                        <CheckCircle2 className={`w-3.5 h-3.5 ${charCount > 0 ? 'text-emerald-400' : 'text-slate-700'}`} />
@@ -276,83 +309,109 @@ export default function App() {
         </section>
 
         {/* Center Column: Split Preview */}
-        <section className="order-1 lg:order-2 bg-[#0F1115] flex flex-col overflow-hidden min-h-[300px] lg:min-h-0">
-          <div className="p-4 md:p-6 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-[#161920]/30 backdrop-blur-sm sticky top-0 z-10 gap-4">
+        <section className="order-1 lg:order-2 bg-[rgb(var(--background))] flex flex-col overflow-hidden min-h-[300px] lg:min-h-0">
+          <div className="p-4 md:p-6 border-b border-[rgb(var(--border))] flex flex-col sm:flex-row items-start sm:items-center justify-between bg-[rgb(var(--section-bg))]/30 backdrop-blur-sm sticky top-0 z-10 gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3">
-                <h2 className="text-base md:text-lg font-semibold">Smart Split Preview</h2>
+                <h2 className="text-base md:text-lg font-semibold uppercase tracking-tight">Production Studio</h2>
                 {isGeneratingAny && (
                   <span className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full font-bold animate-pulse">
                     GENERATING...
                   </span>
                 )}
               </div>
-              <p className="text-sm text-slate-500">Segments optimized for natural pacing</p>
-              
-              {totalChunks > 0 && (completedChunks > 0 || isGeneratingAny) && (
-                <div className="mt-3 w-full sm:max-w-xs space-y-1">
-                  <div className="flex justify-between text-[9px] font-bold text-slate-500 uppercase">
-                    <span>Batch Synthesis</span>
-                    <span>{Math.round(globalProgress)}%</span>
-                  </div>
-                  <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${globalProgress}%` }}
-                      className="h-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800 w-full sm:w-auto overflow-x-auto whitespace-nowrap scrollbar-none">
-              {SPLIT_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => setSelectedSplit(opt)}
-                  className={`px-3 py-1 text-[10px] font-bold rounded transition-all flex-1 sm:flex-none ${
-                    selectedSplit.id === opt.id 
-                      ? 'bg-indigo-600 text-white shadow-lg' 
-                      : 'text-slate-500 hover:text-slate-300'
-                  }`}
-                >
-                  {opt.label.toUpperCase()}
-                </button>
-              ))}
+              <p className="text-sm text-slate-500">Refine your script and manage production segments</p>
             </div>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
-            {/* Script Input Moved to Center */}
-            <div className="bg-[#161920] border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
+            {/* Script Input Center Section */}
+            <div className="bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] rounded-2xl p-5 shadow-2xl space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main Composition</span>
                 </div>
-                <button 
-                  onClick={() => setScript('')}
-                  className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors text-slate-600 hover:text-red-400"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <label className="p-1.5 hover:bg-indigo-500/10 rounded-lg transition-colors text-slate-400 hover:text-indigo-400 cursor-pointer group relative">
+                    <Upload className="w-4 h-4" />
+                    <input 
+                      type="file" 
+                      accept=".txt" 
+                      className="hidden" 
+                      onChange={handleFileUpload}
+                    />
+                    <span className="absolute -bottom-8 right-0 bg-[rgb(var(--alt-bg))] border border-[rgb(var(--border))] text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-20">Import .txt</span>
+                  </label>
+                  <button 
+                    onClick={() => setScript('')}
+                    className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors text-slate-600 hover:text-red-400 group relative"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="absolute -bottom-8 right-0 bg-[rgb(var(--alt-bg))] border border-[rgb(var(--border))] text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-20">Clear All</span>
+                  </button>
+                </div>
               </div>
               
               <textarea 
                 value={script}
                 onChange={(e) => setScript(e.target.value)}
                 placeholder="Narrate your story here... Nerix will automatically handle the chunking."
-                className="w-full min-h-[140px] bg-slate-900/30 border border-slate-800/50 rounded-xl p-4 text-sm md:text-base leading-relaxed text-slate-200 placeholder:text-slate-700 focus:outline-none focus:border-indigo-500/50 resize-y transition-all"
+                className="w-full min-h-[140px] bg-[rgb(var(--alt-bg))]/30 border border-[rgb(var(--border))] rounded-xl p-4 text-sm md:text-base leading-relaxed text-[rgb(var(--foreground))] placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 resize-y transition-all"
                 maxLength={10000}
               />
 
               <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
                 <div className="flex gap-4">
-                  <span>{charCount.toLocaleString()} / 10,000 CHARS</span>
+                  <span>{charCount.toLocaleString()} CHARS</span>
                   <span>{wordCount.toLocaleString()} WORDS</span>
                 </div>
                 {isSplitting && <span className="text-indigo-400 animate-pulse">RE-CALCULATING SEGMENTS...</span>}
               </div>
+            </div>
+
+            {/* Smart Split Preview Moved Below Composition */}
+            <div className="bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] rounded-2xl p-5 shadow-xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Split className="w-4 h-4 text-indigo-500" />
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Smart Split Configuration</h3>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Select how Nerix should segment your script for narration</p>
+                </div>
+                <div className="flex bg-[rgb(var(--alt-bg))] p-1 rounded-lg border border-[rgb(var(--border))] overflow-x-auto whitespace-nowrap scrollbar-none">
+                  {SPLIT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setSelectedSplit(opt)}
+                      className={`px-3 py-1.5 text-[10px] font-bold rounded transition-all ${
+                        selectedSplit.id === opt.id 
+                          ? 'bg-indigo-600 text-white shadow-lg' 
+                          : 'text-slate-500 hover:text-[rgb(var(--foreground))]'
+                      }`}
+                    >
+                      {opt.label.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {totalChunks > 0 && (completedChunks > 0 || isGeneratingAny) && (
+                <div className="space-y-2 pt-2 border-t border-[rgb(var(--border))]">
+                  <div className="flex justify-between text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                    <span>Batch Synthesis Progress</span>
+                    <span className="text-indigo-400">{Math.round(globalProgress)}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-[rgb(var(--alt-bg))] rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${globalProgress}%` }}
+                      className="h-full bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.5)]"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -362,121 +421,124 @@ export default function App() {
               </div>
               
               <AnimatePresence mode="popLayout">
-              {chunks.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-6 opacity-80 mt-10 lg:mt-20 py-8 text-center">
-                  <div className="flex flex-col items-center gap-4">
-                    <Split className="w-12 h-12 md:w-16 md:h-16 opacity-30" />
-                    <p className="text-sm font-medium px-4">Split script to generate segments</p>
+                {chunks.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-6 opacity-80 mt-10 lg:mt-20 py-8 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <Split className="w-12 h-12 md:w-16 md:h-16 opacity-30" />
+                      <p className="text-sm font-medium px-4">Split script to generate segments</p>
+                    </div>
+                    {script.trim() && (
+                      <div className="flex flex-col items-center gap-3">
+                        <span className="text-[10px] uppercase font-bold tracking-widest opacity-50">Or skip splitting</span>
+                        <button 
+                          onClick={async () => {
+                            const singleChunk = await splitScript(script, SPLIT_OPTIONS[0]);
+                            setChunks(singleChunk);
+                          }}
+                          className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs font-bold text-slate-300 transition-all flex items-center gap-2 group"
+                        >
+                          <Mic2 className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
+                          GENERATE FULL SCRIPT AS-IS
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {script.trim() && (
-                    <div className="flex flex-col items-center gap-3">
-                      <span className="text-[10px] uppercase font-bold tracking-widest opacity-50">Or skip splitting</span>
-                      <button 
-                        onClick={async () => {
-                          const singleChunk = await splitScript(script, SPLIT_OPTIONS[0]);
-                          setChunks(singleChunk);
-                        }}
-                        className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs font-bold text-slate-300 transition-all flex items-center gap-2 group"
-                      >
-                        <Mic2 className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
-                        GENERATE FULL SCRIPT AS-IS
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                chunks.map((chunk, index) => (
-                  <motion.div
-                    key={chunk.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="bg-[#161920] border border-slate-800 rounded-xl p-4 flex flex-col gap-3 group hover:border-indigo-500/50 transition-all shadow-lg shadow-black/20"
-                  >
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-mono text-indigo-400">#{String(index + 1).padStart(2, '0')}</span>
-                        <h3 className="font-medium text-slate-200 text-sm">{chunk.label}</h3>
-                        {!chunk.audioUrl && (
-                           <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 bg-slate-800 text-slate-500 rounded uppercase font-bold tracking-widest">
-                             {chunk.statusMessage || 'Pending'}
-                           </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 ml-auto">
-                          <span className="text-[10px] md:text-xs text-slate-500 font-mono italic">
-                            {Math.floor(chunk.estimatedDuration / 60)}:{String(chunk.estimatedDuration % 60).padStart(2, '0')}m
-                          </span>
-                          {chunk.audioUrl ? (
-                            <div className="flex items-center gap-2">
-                               <audio src={chunk.audioUrl} controls className="h-6 w-20 md:w-24 filter invert brightness-125 opacity-70 hover:opacity-100 transition-opacity" />
-                               <a 
-                                  href={chunk.audioUrl} 
-                                  download={`${chunk.label}.wav`}
-                                  className="text-indigo-400 hover:text-indigo-300 transition-colors p-1"
-                               >
-                                 <Download className="w-4 h-4" />
-                               </a>
-                            </div>
-                          ) : (
-                            <button 
-                              onClick={() => handleGenerateChunk(chunk.id)}
-                              disabled={chunk.isGenerating}
-                              className={`text-[10px] md:text-xs font-bold uppercase tracking-widest transition-colors ${chunk.isGenerating ? 'text-indigo-400/50' : 'text-indigo-400 hover:text-indigo-300'}`}
-                            >
-                              {chunk.isGenerating ? `${Math.round(chunk.progress || 0)}%` : 'GENERATE'}
-                            </button>
+                ) : (
+                  chunks.map((chunk, index) => (
+                    <motion.div
+                      key={chunk.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] rounded-xl p-4 flex flex-col gap-3 group hover:border-indigo-500/50 transition-all shadow-lg shadow-black/20"
+                    >
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-mono text-indigo-400">#{String(index + 1).padStart(2, '0')}</span>
+                          <h3 className="font-medium text-[rgb(var(--foreground))] text-sm">{chunk.label}</h3>
+                          {!chunk.audioUrl && (
+                             <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 bg-[rgb(var(--alt-bg))] text-slate-500 rounded uppercase font-bold tracking-widest">
+                               {chunk.statusMessage || 'Pending'}
+                             </span>
                           )}
+                        </div>
+                        <div className="flex items-center gap-3 ml-auto">
+                            <span className="text-[10px] md:text-xs text-slate-500 font-mono italic">
+                              {Math.floor(chunk.estimatedDuration / 60)}:{String(chunk.estimatedDuration % 60).padStart(2, '0')}m
+                            </span>
+                            {chunk.audioUrl ? (
+                              <div className="flex items-center gap-2">
+                                 <audio src={chunk.audioUrl} controls className={`h-6 w-20 md:w-24 ${theme === 'dark' ? 'filter invert brightness-125' : ''} opacity-70 hover:opacity-100 transition-opacity`} />
+                                 <a 
+                                    href={chunk.audioUrl} 
+                                    download={`${chunk.label}.wav`}
+                                    className="text-indigo-400 hover:text-indigo-300 transition-colors p-1"
+                                 >
+                                   <Download className="w-4 h-4" />
+                                 </a>
+                              </div>
+                            ) : (
+                              <button 
+                                onClick={() => handleGenerateChunk(chunk.id)}
+                                disabled={chunk.isGenerating}
+                                className={`text-[10px] md:text-xs font-bold uppercase tracking-widest transition-colors ${chunk.isGenerating ? 'text-indigo-400/50' : 'text-indigo-400 hover:text-indigo-300'}`}
+                              >
+                                {chunk.isGenerating ? `${Math.round(chunk.progress || 0)}%` : 'GENERATE'}
+                              </button>
+                            )}
+                        </div>
                       </div>
-                    </div>
-                    
-                    <textarea 
-                      value={chunk.text}
-                      onChange={(e) => {
-                        const newText = e.target.value;
-                        setChunks(prev => prev.map(c => c.id === chunk.id ? { ...c, text: newText } : c));
-                      }}
-                      className="text-[11px] md:text-xs text-slate-400 bg-transparent border-none p-0 resize-none focus:outline-none focus:text-slate-200 min-h-[40px] leading-relaxed"
-                    />
-
-                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden relative">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: chunk.audioUrl ? '100%' : chunk.isGenerating ? `${chunk.progress}%` : '0%' }}
-                        className={`h-full transition-all duration-300 ${chunk.audioUrl ? 'bg-indigo-500' : 'bg-indigo-600'} ${chunk.isGenerating ? 'shadow-[0_0_8px_rgba(99,102,241,0.6)]' : ''}`}
+                      
+                      <textarea 
+                        value={chunk.text}
+                        onChange={(e) => {
+                          const newText = e.target.value;
+                          setChunks(prev => prev.map(c => c.id === chunk.id ? { ...c, text: newText } : c));
+                        }}
+                        className="text-[11px] md:text-xs text-slate-400 bg-transparent border-none p-0 resize-none focus:outline-none focus:text-[rgb(var(--foreground))] min-h-[40px] leading-relaxed"
                       />
-                    </div>
-                  </motion.div>
-                ))
-              )}
-            </AnimatePresence>
+
+                      <div className="w-full h-1.5 bg-[rgb(var(--alt-bg))] rounded-full overflow-hidden relative">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: chunk.audioUrl ? '100%' : chunk.isGenerating ? `${chunk.progress}%` : '0%' }}
+                          className={`h-full transition-all duration-300 ${chunk.audioUrl ? 'bg-indigo-500' : 'bg-indigo-600'} ${chunk.isGenerating ? 'shadow-[0_0_8px_rgba(99,102,241,0.6)]' : ''}`}
+                        />
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </AnimatePresence>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
         {/* Right Column: Voice & Style Config */}
-        <section className="order-3 border-t shrink-0 lg:order-3 lg:border-t-0 lg:border-l border-slate-800 bg-[#12141A] flex flex-col overflow-hidden max-h-[600px] lg:max-h-none">
+        <section className="order-3 border-t shrink-0 lg:order-3 lg:border-t-0 lg:border-l border-[rgb(var(--border))] bg-[rgb(var(--alt-bg))] flex flex-col overflow-hidden max-h-[600px] lg:max-h-none">
           <div className="p-4 md:p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar flex-1">
             
             <div className="space-y-6">
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-4">🎙 Configuration</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-4">🎙 Premium Voices</label>
                 
                 {/* Voice Selection Dropdown */}
                 <div className="relative group">
                   <select 
                     value={voiceSettings.voice}
                     onChange={(e) => setVoiceSettings(prev => ({ ...prev, voice: e.target.value as VoiceName }))}
-                    className="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl text-sm font-semibold text-slate-100 focus:outline-none focus:border-indigo-500 appearance-none transition-all shadow-lg shadow-black/20"
+                    className="w-full bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] p-4 rounded-2xl text-sm font-semibold text-[rgb(var(--foreground))] focus:outline-none focus:border-indigo-500 appearance-none transition-all shadow-lg shadow-black/20"
                   >
                     {[
-                      { id: VoiceName.CHARON, name: 'Charon (Documentary)' },
-                      { id: VoiceName.KORE, name: 'Kore (Authoritative)' },
-                      { id: VoiceName.FENRIR, name: 'Algenib (Cinematic)' },
-                      { id: VoiceName.ZEPHYR, name: 'Zephyr (Calm)' },
-                      { id: VoiceName.AOIDE, name: 'Aoide (Expressive)' },
-                      { id: VoiceName.ERIS, name: 'Eris (Energetic)' },
-                      { id: VoiceName.NYX, name: 'Nyx (Mysterious)' }
+                      { id: VoiceName.CHARON, name: 'Charon — Documentary' },
+                      { id: VoiceName.KORE, name: 'Kore — Authoritative' },
+                      { id: VoiceName.FENRIR, name: 'Algenib — Cinematic' },
+                      { id: VoiceName.ZEPHYR, name: 'Zephyr — Calm' },
+                      { id: VoiceName.AOIDE, name: 'Aoide — Expressive' },
+                      { id: VoiceName.ERIS, name: 'Eris — Energetic' },
+                      { id: VoiceName.NYX, name: 'Nyx — Mysterious' },
+                      { id: VoiceName.PUCK, name: 'Puck — Playful' },
+                      { id: VoiceName.ATLAS, name: 'Atlas — Deep/Resonant' },
+                      { id: VoiceName.ASTRA, name: 'Astra — Bright/Friendly' }
                     ].map(v => (
                       <option key={v.id} value={v.id}>{v.name}</option>
                     ))}
@@ -487,78 +549,30 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Contextual Style Controls */}
-              <div className="bg-[#161920] border border-slate-800 rounded-2xl p-5 space-y-6 shadow-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-1.5 h-4 bg-indigo-500 rounded-full" />
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Style Tuning</span>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[11px] font-medium">
-                      <span className="text-slate-400">Emotional Intensity</span>
-                      <span className="text-indigo-400 font-mono">{Math.round(voiceSettings.emotionIntensity * 100)}%</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="1" 
-                      step="0.01" 
-                      value={voiceSettings.emotionIntensity}
-                      onChange={(e) => setVoiceSettings(prev => ({ ...prev, emotionIntensity: parseFloat(e.target.value) }))}
-                      className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-slate-500 font-bold ml-1 uppercase">Tone</span>
-                      <select 
-                        value={voiceSettings.tone}
-                        onChange={(e) => setVoiceSettings(prev => ({ ...prev, tone: e.target.value as ToneType }))}
-                        className="w-full bg-slate-900/50 border border-slate-800 rounded-xl p-2.5 text-[11px] text-slate-300 focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
-                      >
-                        {Object.values(ToneType).map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-slate-500 font-bold ml-1 uppercase">Pace</span>
-                      <select 
-                        value={voiceSettings.pace}
-                        onChange={(e) => setVoiceSettings(prev => ({ ...prev, pace: e.target.value as PaceType }))}
-                        className="w-full bg-slate-900/50 border border-slate-800 rounded-xl p-2.5 text-[11px] text-slate-300 focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
-                      >
-                        {Object.values(PaceType).map(p => <option key={p} value={p}>{p}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-800">
-                   <button
-                    onClick={handleGenerateVoicePreview}
-                    disabled={isPreviewing}
-                    className="w-full py-3 bg-indigo-600/10 hover:bg-indigo-600 border border-indigo-500/20 rounded-xl text-[10px] font-bold text-indigo-400 hover:text-white transition-all flex items-center justify-center gap-2 group active:scale-95"
+              {/* Preview Control (Style Tuning Removed) */}
+              <div className="bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] rounded-2xl p-5 space-y-4 shadow-xl">
+                 <button
+                  onClick={handleGenerateVoicePreview}
+                  disabled={isPreviewing}
+                  className="w-full py-3 bg-indigo-600/10 hover:bg-indigo-600 border border-indigo-500/20 rounded-xl text-[10px] font-bold text-indigo-400 hover:text-white transition-all flex items-center justify-center gap-2 group active:scale-95"
+                >
+                  {isPreviewing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 group-hover:scale-110" />}
+                  {previewAudioUrl ? 'REFRESH PREVIEW' : 'PREVIEW VOICE'}
+                </button>
+                
+                {previewAudioUrl && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }} 
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-black/20 p-2.5 rounded-xl border border-indigo-500/20 flex flex-col gap-2"
                   >
-                    {isPreviewing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 group-hover:scale-110" />}
-                    {previewAudioUrl ? 'REFRESH PREVIEW' : 'PREVIEW VOICE'}
-                  </button>
-                  
-                  {previewAudioUrl && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 5 }} 
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-4 bg-slate-950 p-2.5 rounded-xl border border-indigo-500/20 flex flex-col gap-2"
-                    >
-                       <div className="flex items-center justify-between px-1">
-                         <span className="text-[9px] font-bold text-indigo-400">LIVE PREVIEW</span>
-                         <Waves className="w-3 h-3 text-indigo-400 animate-pulse" />
-                       </div>
-                       <audio src={previewAudioUrl} autoPlay controls className="h-7 w-full filter invert brightness-125" />
-                    </motion.div>
-                  )}
-                </div>
+                     <div className="flex items-center justify-between px-1">
+                       <span className="text-[9px] font-bold text-indigo-400">LIVE PREVIEW</span>
+                       <Waves className="w-3 h-3 text-indigo-400 animate-pulse" />
+                     </div>
+                     <audio src={previewAudioUrl} autoPlay controls className={`h-7 w-full ${theme === 'dark' ? 'filter invert brightness-125' : ''}`} />
+                  </motion.div>
+                )}
               </div>
             </div>
 
@@ -567,7 +581,7 @@ export default function App() {
               <select 
                 value={voiceSettings.preset}
                 onChange={(e) => setVoiceSettings(prev => ({ ...prev, preset: e.target.value as StylePreset }))}
-                className="w-full bg-slate-900 border border-slate-800 p-3.5 rounded-2xl text-xs font-semibold text-slate-200 focus:outline-none focus:border-indigo-500 transition-all appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%23475569%22%20stroke-width%3D%221.66667%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:16px] bg-[right_12px_center] bg-no-repeat"
+                className="w-full bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] p-3.5 rounded-2xl text-xs font-semibold text-[rgb(var(--foreground))] focus:outline-none focus:border-indigo-500 transition-all appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%23475569%22%20stroke-width%3D%221.66667%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:16px] bg-[right_12px_center] bg-no-repeat"
               >
                 {Object.values(StylePreset).map(p => <option key={p} value={p}>{p}</option>)}
               </select>
@@ -592,7 +606,7 @@ export default function App() {
                               <span>{mergeStatus}</span>
                               <span>{mergeProgress}%</span>
                             </div>
-                            <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="w-full h-1 bg-[rgb(var(--alt-bg))] rounded-full overflow-hidden">
                               <motion.div 
                                 initial={{ width: 0 }}
                                 animate={{ width: `${mergeProgress}%` }}
@@ -607,7 +621,7 @@ export default function App() {
                          <div className="flex items-center justify-between">
                            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Final Production Ready</span>
                          </div>
-                         <audio src={mergedAudioUrl} controls className="w-full filter invert brightness-125" />
+                         <audio src={mergedAudioUrl} controls className={`w-full ${theme === 'dark' ? 'filter invert brightness-125' : ''}`} />
                          <a 
                             href={mergedAudioUrl} 
                             download="project_output.wav"
@@ -619,7 +633,7 @@ export default function App() {
                     )}
                  </div>
                ) : (
-                  <div className="p-4 border-2 border-dashed border-slate-800 rounded-2xl text-center opacity-30">
+                  <div className="p-4 border-2 border-dashed border-[rgb(var(--border))] rounded-2xl text-center opacity-30">
                     <Mic2 className="w-8 h-8 mx-auto mb-2 text-slate-600" />
                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 leading-relaxed">Wait for Generation</p>
                   </div>
@@ -630,7 +644,7 @@ export default function App() {
       </main>
       
       {/* Footer Bar */}
-      <footer className="h-10 bg-[#0A0C10] border-t border-slate-800 flex items-center px-4 md:px-6 justify-between text-[9px] md:text-[10px] tracking-wider text-slate-600 shrink-0">
+      <footer className="h-10 bg-[rgb(var(--alt-bg))] border-t border-[rgb(var(--border))] flex items-center px-4 md:px-6 justify-between text-[9px] md:text-[10px] tracking-wider text-slate-600 shrink-0">
         <div className="flex gap-4 font-mono">
           <span>SAMPLING RATE: 24KHZ</span>
           <span className="hidden sm:inline">BITRATE: 320KBPS</span>
@@ -650,11 +664,11 @@ export default function App() {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #334155;
+          background: rgb(var(--muted) / 0.3);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #475569;
+          background: rgb(var(--muted) / 0.5);
         }
         input[type='range']::-webkit-slider-thumb {
           -webkit-appearance: none;
@@ -664,7 +678,7 @@ export default function App() {
           background: #6366f1;
           border-radius: 50%;
           cursor: pointer;
-          border: 2px solid #161920;
+          border: 2px solid rgb(var(--section-bg));
           box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
         }
         .scrollbar-none::-webkit-scrollbar {

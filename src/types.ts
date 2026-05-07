@@ -11,7 +11,9 @@ export enum VoiceName {
   ZEPHYR = 'Zephyr',
   AOIDE = 'Aoide',
   ERIS = 'Eris',
-  NYX = 'Nyx'
+  NYX = 'Nyx',
+  ATLAS = 'Atlas',
+  ASTRA = 'Astra'
 }
 
 export enum ToneType {
