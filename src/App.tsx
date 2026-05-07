@@ -23,7 +23,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Sun,
-  Moon
+  Moon,
+  Search,
+  X
 } from 'lucide-react';
 import { 
   VoiceName, 
@@ -41,6 +43,19 @@ const SPLIT_OPTIONS: SplitOption[] = [
   { id: 'recommended', label: 'Recommended', description: 'Best balance: 4 segments (~2-3 mins)', chunkCount: 4, color: 'text-indigo-400 bg-indigo-500/10' },
   { id: 'alternative', label: 'Alternative', description: 'Fewer cuts: 3 segments (~3-4 mins)', chunkCount: 3, color: 'text-amber-400 bg-amber-500/10' },
   { id: 'precision', label: 'Precision', description: 'Maximum control: 6 segments (~1-2 mins)', chunkCount: 6, color: 'text-violet-400 bg-violet-500/10' },
+];
+
+const VOICES = [
+  { id: VoiceName.CHARON, name: 'Charon', category: 'Narrative', tags: ['Deep', 'Documentary', 'Male'], description: 'Rich, gravelly voice perfect for documentaries and stoic narrations.' },
+  { id: VoiceName.KORE, name: 'Kore', category: 'Professional', tags: ['Authoritative', 'Stable', 'Female'], description: 'Commanding yet accessible, ideal for corporate training and news.' },
+  { id: VoiceName.FENRIR, name: 'Algenib', category: 'Cinematic', tags: ['Intense', 'Epic', 'Male'], description: 'A cinematic powerhouse with high dynamic range for trailers and drama.' },
+  { id: VoiceName.ZEPHYR, name: 'Zephyr', category: 'Conversational', tags: ['Calm', 'Smooth', 'Male'], description: 'A gentle, airy tone suitable for meditation or friendly explainers.' },
+  { id: VoiceName.AOIDE, name: 'Aoide', category: 'Expressive', tags: ['Vibrant', 'Social', 'Female'], description: 'High-energy and rhythmic, great for commercials and social media.' },
+  { id: VoiceName.ERIS, name: 'Eris', category: 'Dynamic', tags: ['Energetic', 'Punchy', 'Female'], description: 'Sharp and fast-paced, perfect for technical reviews and sports.' },
+  { id: VoiceName.NYX, name: 'Nyx', category: 'Mysterious', tags: ['Dark', 'Ambient', 'Female'], description: 'A low-register, ethereal voice for horror or psychological drama.' },
+  { id: VoiceName.PUCK, name: 'Puck', category: 'Friendly', tags: ['Playful', 'Light', 'Male'], description: 'A mischievous and versatile voice for animation and lighthearted content.' },
+  { id: VoiceName.ATLAS, name: 'Atlas', category: 'Grand', tags: ['Bass', 'Resonant', 'Male'], description: 'Extraordinarily deep with massive weight for mythological or bold themes.' },
+  { id: VoiceName.ASTRA, name: 'Astra', category: 'Cheerful', tags: ['Bright', 'Clear', 'Female'], description: 'Optimistic and crystal clear, designed for customer-facing interfaces.' },
 ];
 
 export default function App() {
@@ -63,6 +78,8 @@ export default function App() {
 
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
+  const [isVoicePickerOpen, setIsVoicePickerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('theme') as 'dark' | 'light') || 'dark';
@@ -79,6 +96,18 @@ export default function App() {
   const charCount = script.length;
   const wordCount = useMemo(() => script.trim().split(/\s+/).filter(Boolean).length, [script]);
   const estDuration = useMemo(() => Math.round((wordCount / 140) * 60), [wordCount]);
+
+  const filteredVoices = useMemo(() => {
+    return VOICES.filter(v => 
+      v.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      v.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [searchQuery]);
+
+  const selectedVoiceData = useMemo(() => 
+    VOICES.find(v => v.id === voiceSettings.voice) || VOICES[0],
+  [voiceSettings.voice]);
 
   const totalChunks = chunks.length;
   const completedChunks = chunks.filter(c => c.audioUrl).length;
@@ -521,36 +550,37 @@ export default function App() {
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-4">🎙 Premium Voices</label>
                 
-                {/* Voice Selection Dropdown */}
-                <div className="relative group">
-                  <select 
-                    value={voiceSettings.voice}
-                    onChange={(e) => setVoiceSettings(prev => ({ ...prev, voice: e.target.value as VoiceName }))}
-                    className="w-full bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] p-4 rounded-2xl text-sm font-semibold text-[rgb(var(--foreground))] focus:outline-none focus:border-indigo-500 appearance-none transition-all shadow-lg shadow-black/20"
-                  >
-                    {[
-                      { id: VoiceName.CHARON, name: 'Charon — Documentary' },
-                      { id: VoiceName.KORE, name: 'Kore — Authoritative' },
-                      { id: VoiceName.FENRIR, name: 'Algenib — Cinematic' },
-                      { id: VoiceName.ZEPHYR, name: 'Zephyr — Calm' },
-                      { id: VoiceName.AOIDE, name: 'Aoide — Expressive' },
-                      { id: VoiceName.ERIS, name: 'Eris — Energetic' },
-                      { id: VoiceName.NYX, name: 'Nyx — Mysterious' },
-                      { id: VoiceName.PUCK, name: 'Puck — Playful' },
-                      { id: VoiceName.ATLAS, name: 'Atlas — Deep/Resonant' },
-                      { id: VoiceName.ASTRA, name: 'Astra — Bright/Friendly' }
-                    ].map(v => (
-                      <option key={v.id} value={v.id}>{v.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
-                    <ChevronRight className="w-4 h-4 rotate-90" />
+                {/* Custom Eleven Labs Style Trigger */}
+                <button 
+                  onClick={() => setIsVoicePickerOpen(true)}
+                  className="w-full bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] p-4 rounded-2xl flex items-center justify-between hover:border-indigo-500 transition-all text-left group shadow-lg shadow-black/20"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                      <Mic2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-[rgb(var(--foreground))]">{selectedVoiceData.name}</div>
+                      <div className="text-[10px] text-slate-500 font-medium">{selectedVoiceData.category} • {selectedVoiceData.tags.join(', ')}</div>
+                    </div>
                   </div>
-                </div>
+                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-indigo-400 transition-colors" />
+                </button>
               </div>
 
-              {/* Preview Control (Style Tuning Removed) */}
+              {/* Enhanced Preview Control */}
               <div className="bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] rounded-2xl p-5 space-y-4 shadow-xl">
+                 <div className="flex items-center justify-between mb-1">
+                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Sample</span>
+                   {previewAudioUrl && (
+                     <button 
+                       onClick={() => setPreviewAudioUrl(null)}
+                       className="text-[10px] text-slate-600 hover:text-red-400 transition-all"
+                     >
+                       CLEAR
+                     </button>
+                   )}
+                 </div>
                  <button
                   onClick={handleGenerateVoicePreview}
                   disabled={isPreviewing}
@@ -655,6 +685,131 @@ export default function App() {
           <span>SYSTEM ONLINE</span>
         </div>
       </footer>
+
+      {/* Eleven Labs Style Voice Picker Overlay */}
+      <AnimatePresence>
+        {isVoicePickerOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsVoicePickerOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-4xl max-h-[85vh] bg-[rgb(var(--background))] border border-[rgb(var(--border))] rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            >
+              <div className="p-6 border-b border-[rgb(var(--border))] flex items-center justify-between bg-[rgb(var(--section-bg))]">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                    <Mic2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight">Voice Catalog</h2>
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-widest">Select your narrative AI persona</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsVoicePickerOpen(false)}
+                  className="p-2 hover:bg-slate-800 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-6 border-b border-[rgb(var(--border))] bg-[rgb(var(--alt-bg))]/50">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                  <input 
+                    autoFocus
+                    type="text"
+                    placeholder="Search voices by name, category, or attributes..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-[rgb(var(--section-bg))] border border-[rgb(var(--border))] rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-indigo-500/50 transition-all font-medium placeholder:text-slate-600"
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredVoices.map((voice) => (
+                    <div
+                      key={voice.id}
+                      className={`group flex flex-col p-5 rounded-2xl border transition-all text-left h-full ${
+                        voiceSettings.voice === voice.id 
+                          ? 'bg-indigo-600/10 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.1)]' 
+                          : 'bg-[rgb(var(--section-bg))] border-[rgb(var(--border))] hover:border-indigo-500/50 shadow-lg shadow-black/10'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                             <div className={`w-2 h-2 rounded-full ${voiceSettings.voice === voice.id ? 'bg-indigo-400 animate-pulse' : 'bg-slate-700'}`} />
+                             <span className="font-bold text-base">{voice.name}</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{voice.category}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleGenerateVoicePreview(); // Uses existing preview logic for the voice settings
+                              // Note: To be perfectly accurate we'd temp set the voice and preview, 
+                              // but since we want to preview the SPECIFIC voice, let's update settings for a sec
+                              setVoiceSettings(prev => ({ ...prev, voice: voice.id }));
+                            }}
+                            className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg hover:bg-indigo-500 hover:text-white transition-all shadow-sm"
+                            title="Audition Voice"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                          </button>
+                          {voiceSettings.voice === voice.id && (
+                            <div className="bg-indigo-600 text-white p-1 rounded-full">
+                              <CheckCircle2 className="w-4 h-4" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => {
+                          setVoiceSettings(prev => ({ ...prev, voice: voice.id }));
+                          setIsVoicePickerOpen(false);
+                        }}
+                      >
+                        <p className="text-xs text-slate-500 mb-4 line-clamp-2 leading-relaxed">
+                          {voice.description}
+                        </p>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {voice.tags.map(tag => (
+                            <span key={tag} className="px-2 py-0.5 bg-slate-800/50 text-[9px] font-bold text-slate-400 rounded uppercase border border-slate-700/50">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {filteredVoices.length === 0 && (
+                  <div className="py-20 text-center space-y-4 opacity-50">
+                    <Search className="w-12 h-12 mx-auto text-slate-700" />
+                    <p className="text-sm font-medium">No voices found matching "{searchQuery}"</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {

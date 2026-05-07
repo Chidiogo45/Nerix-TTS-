@@ -89,6 +89,18 @@ export async function generateTTS(chunk: ScriptChunk, settings: VoiceSettings): 
   } else if (settings.voice === VoiceName.NYX) {
     activeVoice = 'Charon';
     personaInstruction = "Narrate with a deep, mysterious, and slightly more resonant lower register.";
+  } else if (settings.voice === VoiceName.ATLAS) {
+    activeVoice = 'Charon';
+    personaInstruction = "Narrate with a very deep, authoritative, and resonant bass-baritone tone.";
+  } else if (settings.voice === VoiceName.ASTRA) {
+    activeVoice = 'Zephyr';
+    personaInstruction = "Narrate with a bright, friendly, and optimistic high-energy tone.";
+  }
+
+  // Ensure activeVoice is strictly one of the supported ones for the TTS model
+  const supportedVoices = ['Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr'];
+  if (!supportedVoices.includes(activeVoice)) {
+    activeVoice = 'Charon'; // Default fallback
   }
 
   const voicePrompt = `
