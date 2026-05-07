@@ -71,13 +71,29 @@ export default function App() {
   const isGeneratingAny = chunks.some(c => c.isGenerating);
   const globalProgress = totalChunks > 0 ? (completedChunks / totalChunks) * 100 : 0;
 
+  // Automatically split when selection or script changes (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (script.trim()) {
+        handleSplit();
+      } else {
+        setChunks([]);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [script, selectedSplit]);
+
   const handleSplit = async () => {
     if (!script.trim()) return;
     setIsSplitting(true);
-    // Instant split using the new heuristic logic
-    const result = await splitScript(script, selectedSplit);
-    setChunks(result);
-    setIsSplitting(false);
+    try {
+      const result = await splitScript(script, selectedSplit);
+      setChunks(result);
+    } catch (error) {
+      console.error("Split failed:", error);
+    } finally {
+      setIsSplitting(false);
+    }
   };
 
   const handleGenerateVoicePreview = async () => {
@@ -221,51 +237,40 @@ export default function App() {
 
       <main className="flex-1 flex flex-col lg:grid lg:grid-cols-[280px_1fr_320px] lg:h-[calc(100vh-64px-40px)] overflow-hidden">
         
-        {/* Left Column: Input & Controls */}
-        <section className="order-2 lg:order-1 border-t lg:border-t-0 lg:border-r border-slate-800 flex flex-col bg-[#12141A] max-h-[500px] lg:max-h-none overflow-hidden shrink-0 lg:shrink">
-          <div className="p-4 flex-1 flex flex-col gap-4 overflow-hidden">
-             <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Long-Form Script</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono text-slate-600 lg:hidden">{charCount}/10000</span>
-                  <button 
-                    onClick={() => setScript('')}
-                    className="p-1 hover:bg-slate-800 rounded transition-colors text-slate-500"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-             </div>
-             <textarea 
-                value={script}
-                onChange={(e) => setScript(e.target.value)}
-                placeholder="Paste script here..."
-                className="flex-1 min-h-[160px] bg-slate-900/50 border border-slate-800 rounded-xl p-4 text-sm leading-relaxed text-slate-300 focus:outline-none focus:border-indigo-500 resize-none transition-colors"
-                maxLength={10000}
-             />
-             
-             <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold">Word Count</p>
-                  <p className="text-base md:text-lg font-semibold">{wordCount.toLocaleString()}</p>
-                </div>
-                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold">Complexity</p>
-                  <p className={`text-base md:text-lg font-semibold ${wordCount > 500 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                    {wordCount > 500 ? 'High' : 'Low'}
-                  </p>
+        {/* Left Column: Project Overview */}
+        <section className="order-2 lg:order-1 border-t lg:border-t-0 lg:border-r border-slate-800 flex flex-col bg-[#12141A] max-h-[150px] lg:max-h-none overflow-hidden shrink-0">
+          <div className="p-4 flex-1 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+             <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-4">Project Overview</label>
+                <div className="space-y-3">
+                  <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                    <p className="text-[9px] text-slate-500 uppercase font-black mb-1">Total Narrative</p>
+                    <div className="flex items-end justify-between">
+                      <span className="text-xl font-bold">{wordCount.toLocaleString()}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">WORDS</span>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                    <p className="text-[9px] text-slate-500 uppercase font-black mb-1">Production Complexity</p>
+                    <div className="flex items-center gap-2">
+                       <div className={`w-2 h-2 rounded-full ${wordCount > 500 ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                       <span className="text-sm font-semibold">{wordCount > 500 ? 'High Complexity' : 'Standard'}</span>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                    <p className="text-[9px] text-slate-500 uppercase font-black mb-1">Input Integrity</p>
+                    <div className="flex items-center gap-2">
+                       <CheckCircle2 className={`w-3.5 h-3.5 ${charCount > 0 ? 'text-emerald-400' : 'text-slate-700'}`} />
+                       <span className="text-xs text-slate-400">{charCount}/10,000 Chars</span>
+                    </div>
+                  </div>
                 </div>
              </div>
 
-             <div className="pt-2">
-               <button
-                  onClick={handleSplit}
-                  disabled={isSplitting || !script.trim()}
-                  className="w-full py-3 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 rounded-xl font-bold text-xs md:text-sm tracking-wide transition-all flex items-center justify-center gap-2 group"
-                >
-                  {isSplitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Split className="w-5 h-5 group-hover:rotate-12 transition-transform" />}
-                  SMART SPLIT ENGINE
-                </button>
+             <div className="pt-4 border-t border-slate-800/50">
+               <p className="text-[9px] text-slate-600 leading-relaxed italic uppercase font-medium">
+                 Changes to the script will automatically re-calibrate split segments below.
+               </p>
              </div>
           </div>
         </section>
@@ -317,8 +322,46 @@ export default function App() {
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
-            <AnimatePresence mode="popLayout">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
+            {/* Script Input Moved to Center */}
+            <div className="bg-[#161920] border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main Composition</span>
+                </div>
+                <button 
+                  onClick={() => setScript('')}
+                  className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors text-slate-600 hover:text-red-400"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <textarea 
+                value={script}
+                onChange={(e) => setScript(e.target.value)}
+                placeholder="Narrate your story here... Nerix will automatically handle the chunking."
+                className="w-full min-h-[140px] bg-slate-900/30 border border-slate-800/50 rounded-xl p-4 text-sm md:text-base leading-relaxed text-slate-200 placeholder:text-slate-700 focus:outline-none focus:border-indigo-500/50 resize-y transition-all"
+                maxLength={10000}
+              />
+
+              <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
+                <div className="flex gap-4">
+                  <span>{charCount.toLocaleString()} / 10,000 CHARS</span>
+                  <span>{wordCount.toLocaleString()} WORDS</span>
+                </div>
+                {isSplitting && <span className="text-indigo-400 animate-pulse">RE-CALCULATING SEGMENTS...</span>}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1">
+                <Split className="w-4 h-4 text-slate-600" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Generated Segments</span>
+              </div>
+              
+              <AnimatePresence mode="popLayout">
               {chunks.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-6 opacity-80 mt-10 lg:mt-20 py-8 text-center">
                   <div className="flex flex-col items-center gap-4">
@@ -408,7 +451,8 @@ export default function App() {
               )}
             </AnimatePresence>
           </div>
-        </section>
+        </div>
+      </section>
 
         {/* Right Column: Voice & Style Config */}
         <section className="order-3 border-t shrink-0 lg:order-3 lg:border-t-0 lg:border-l border-slate-800 bg-[#12141A] flex flex-col overflow-hidden max-h-[600px] lg:max-h-none">
